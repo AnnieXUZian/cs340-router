@@ -7,6 +7,12 @@ class Distance_Vector_Node(Node):
         self.node_distance_path_table = {}      #table of who they can connect to, what cost
         self.neighbor_tables = {}               #table of what can be reached thru neighbors
 
+            # IMPLEMENTATION TOOLS:
+
+        # node_distance_path_table:     {end_vertex, {latency, seq_num}}
+        # neighbor_table:               {neighbor, [tuple]}
+        # tuple =   (end_vertex, latency)
+
     # Return a string
     def __str__(self):
         return "Rewrite this function to define your node dump printout"
@@ -16,90 +22,48 @@ class Distance_Vector_Node(Node):
         link=frozenset([self.id, neighbor])
         # latency = -1 if delete a link
         seq_num=0
+
+
         if latency == -1 and neighbor in self.neighbors:    ###DELETE A LINK####
             self.neighbors.remove(neighbor)
             seq_num=self.node_distance_path_table[link]["seq_num"] + 1 #newest information available
-            self.node_distance_path_table.pop(link)     #remove the link from the table- no longer available
-            self.neighbor_tables.pop(neighbor)              #also remove it from the neighbor table
+            self.node_distance_path_table
 
+
+            # HOW TO DO DELETE?
 
 
         elif neighbor in self.neighbors:        ###UPDATE A LINK###
             seq_num = self.node_distance_path_table[link]["seq_num"] + 1 #newest info available
             self.node_distance_path_table[link]["seq_num"]+=1              #updates the sequence num
             self.node_distance_path_table[link]['latency'] = latency       #updates latency num
-            #self.neighbor_tables ------------------------------- this does not change the neighbor table?
-            
-                #BELLMAN FORD ALGORITHM MOMENT
-            for i in self.node_distance_path_table.keys():                  #iterate thru the keys
-                for node in i:
-                    if node not in self.node_distance_path_table and c == 1:
-                        temp.append(node)                                   # get num of vertices 
-                        self.neighbor_tables[node] = 0 
-                        c = 0
-                    elif node not in self.node_distance_path_table:
-                        temp.append(node)
-                        self.neighbor_tables[node] = -1                             
-
-            for i in range(len(temp)):             # iterate thru vertices
-                for j in self.node_distance_path_table.keys():
-                    src_edge, *_ = j
-                    *_, end_edge = j 
-                    weight = self.node_distance_path_table[j]['latency']
-                    
-                    if self.neighbor_tables[end_edge] != -1 and (self.neighbor_tables[src_edge] + weight) < self.neighbor_tables[end_edge]:
-                        self.neighbor_tables[end_edge] = {self.neighbor_tables[src_edge] + weight}
-                    elif(self.neighbor_tables[end_edge] == -1):
-                        self.neighbor_tables[end_edge] = self.neighbor_tables[src_edge] + weight
 
 
+        else: #add a link                   ------------------------ HAVE TO TAKE INTO ACCOUNT THE FIRST NODE
+#-------------------------------COMMENTED OUT FOR CLARITY-------------------------------------------#
 
-        else:           ###ADD A LINK###
-            for i in self.node_distance_path_table.keys():
-                temp=[]
-                for node in i:
-                    temp.append(node)
-                    
-                entries = []
-                keys = []
-                for i in self.neighbor_tables.keys():
-                    entries.append(self.neighbor_tables[i])       
-                    keys.append(i)
+            # for i in self.lsdb.keys():
+            #     temp=[]
+            #     for node in i:
+            #         temp.append(node)
+            #     message = json.dumps(
+            #         {'source': temp[0], 'dest': temp[1], 'latency': self.node_distance_path_table[i]["latency"], 'seq_num': self.node_distance_path_table[i]["seq_num"]})
+            #     self.send_to_neighbor(neighbor, message)
                 
-                message = json.dumps(
-                    {'source': temp[0], 'dest': temp[1], 'latency': self.node_distance_path_table[i]["latency"], 'seq_num': self.node_distance_path_table[i]["seq_num"], 'DV_table_keys': self.node_distance_path_table.keys()})
-                self.send_to_neighbor(neighbor, message)
             self.neighbors.append(neighbor)
             seq_num = 1
             self.node_distance_path_table[link]={"latency":latency,"seq_num":1}
+            self.neighbor_tables[neighbor] = [(neighbor, latency)]
             
-                #BELLMAN FORD ALGORITHM
-            temp=[]
-            # print(self.node_distance_path_table.keys())
-            c=1
-            for i in self.node_distance_path_table.keys():                  #iterate thru the keys
-                for node in i:
-                    if node not in self.node_distance_path_table.keys() and c == 1:
-                        temp.append(node)                                   # get num of vertices 
-                        self.neighbor_tables[node] = 0 
-                        c = 0
-                    elif node not in self.node_distance_path_table.keys():
-                        temp.append(node)
-                        self.neighbor_tables[node] = -1                             
 
-            for i in range(len(temp)):             # iterate thru vertices
-                for j in self.node_distance_path_table.keys():
-                    src_edge, *_ = j
-                    *_, end_edge = j 
-                    weight = self.node_distance_path_table[j]['latency']
-
-                    if self.neighbor_tables[end_edge] != -1 and (self.neighbor_tables[src_edge] + weight) < self.neighbor_tables[end_edge]:
-                        self.neighbor_tables[end_edge] = {self.neighbor_tables[src_edge] + weight}
-                    elif(self.neighbor_tables[end_edge] == -1):
-                        self.neighbor_tables[end_edge] = self.neighbor_tables[src_edge] + weight
-
-        print(self.node_distance_path_table)
-        print(self.neighbor_tables)    
+         #BELLMAN FORD ALGORITHM MOMENT
+        for neighbor in self.neighbors:                             #iterate thru the neighbors (vertices)
+            for tuple in self.neighbor_tables[neighbor]:            #iterate thru the edges for each neighbor
+                if tuple not in self.node_distance_path_table.keys():                   #if there is no length already, set len to whatever is in the neighbor's DV
+                    self.node_distance_path_table[tuple[0]]['latency'] = self.node_distance_path_table[neighbor]['latency'] + tuple[1]    # tuple0latency->end point cost set to: cost src to neighbor+cost neigbor to end point
+                elif self.node_distance_path_table[tuple[0]]['latency'] > self.node_distance_path_table[neighbor]['latency'] + tuple[1]:    # if current distance larger than distance to neighbor+distance neighbor->end point,
+                    self.node_distance_path_table[tuple[0]]['latency'] = self.node_distance_path_table[neighbor]['latency'] + tuple[1]      # set new distance to       distance to neighbor+distance neighbor->end point.
+                self.node_distance_path_table[tuple[0]]['seq_num'] = seq_num                            
 
         entries = []
         keys = []
@@ -109,7 +73,7 @@ class Distance_Vector_Node(Node):
 
         #send message to neighbors
         msg = json.dumps(
-            {'source': neighbor, 'dest': self.id, 'latency': latency, 'seq_num': seq_num, 'DV_table_keys': keys, 'DV_table_entries' : entries})
+            {'source': neighbor, 'dest': self.id, 'latency': latency, 'seq_num': seq_num, 'DV_table': self.neighbor_tables})
         self.send_to_neighbors(msg)
         self.logging.debug('link update, neighbor %d, latency %d, time %d' % (neighbor, latency, self.get_time()))
 
@@ -120,7 +84,8 @@ class Distance_Vector_Node(Node):
         dest = msg['dest']
         latency = msg['latency']
         seq_num = msg['seq_num']
-        incoming_table = msg['DV_table']
+        incoming_keys = msg['DV_table_keys']
+        incoming_entries = msg['DV_table_entries']
         link = frozenset([source, dest])
 
         if latency==-1 and link in self.node_distance_path_table.keys():#new message-delete
@@ -128,11 +93,14 @@ class Distance_Vector_Node(Node):
             self.neighbor_tables.pop(source)
             self.send_to_neighbors(m)
 
+            #NEED TO REFIND THE WAYS TO PLACES
+
         elif link in self.node_distance_path_table.keys():
             if seq_num > self.node_distance_path_table[link]['seq_num']: #new message-update
                 self.node_distance_path_table[link]['seq_num']=seq_num
                 self.node_distance_path_table[link]['latency']=latency
-                self.neighbor_tables[source] = incoming_table
+                # for i in incoming_keys:
+                    #self.neighbor_tables[i] = 
                 self.send_to_neighbors(m)
             elif seq_num < self.node_distance_path_table[link]['seq_num']:#old message-------------maybe it should be link and not source?
                 message = json.dumps
@@ -152,3 +120,5 @@ class Distance_Vector_Node(Node):
             return -1
 
        
+
+    
